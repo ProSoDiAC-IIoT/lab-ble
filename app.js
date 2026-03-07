@@ -32,13 +32,14 @@
    Holds references that are shared across all button handlers.
    ============================================================ */
 const state = {
-    device: null,   // BluetoothDevice – the selected peripheral
-    server: null,   // BluetoothRemoteGATTServer – open GATT connection
-    services: [],     // Array of BluetoothRemoteGATTService
-    selectedService: null,   // Currently highlighted service
-    characteristics: [],     // Array of BluetoothRemoteGATTCharacteristic
-    selectedChar: null,   // Currently highlighted characteristic
-    notifying: false,  // Whether we are subscribed to notifications
+    device: null,   // BluetoothDevice
+    server: null,   // BluetoothRemoteGATTServer
+    services: [],
+    selectedService: null,
+    characteristics: [],
+    selectedChar: null,
+    notifying: false,
+    simMode: false,  // true = use MockBluetooth from peripheral.js
 };
 
 /* ============================================================
@@ -75,6 +76,27 @@ const badgeRead = $('badge-read');
 const badgeWrite = $('badge-write');
 const badgeNotify = $('badge-notify');
 const propertyBadges = $('property-badges');
+
+const simToggle = $('sim-toggle');   // Simulation Mode checkbox
+const simInfoPanel = $('sim-info');    // Virtual device info card
+
+/* ============================================================
+   SIMULATION MODE TOGGLE
+   When enabled, getMockBluetooth() from peripheral.js is used
+   instead of navigator.bluetooth so the full GATT flow works
+   without any physical BLE hardware.
+   ============================================================ */
+simToggle.addEventListener('change', () => {
+    state.simMode = simToggle.checked;
+    simInfoPanel.classList.toggle('hidden', !state.simMode);
+
+    if (state.simMode) {
+        log('🧪 Simulation Mode <strong>ON</strong> — using built-in virtual peripheral.', 'warn');
+        log('   Click <strong>Scan</strong> to connect to the Virtual BLE Device.', 'info');
+    } else {
+        log('📡 Simulation Mode <strong>OFF</strong> — using real Web Bluetooth.', 'info');
+    }
+});
 
 /* ============================================================
    LOGGING UTILITY
@@ -186,54 +208,69 @@ function updateActionButtons(char) {
  * of which services the target device exposes.
  */
 const STANDARD_SERVICES = [
-    // ── Generic / mandatory ──────────────────────────────────
-    'generic_access',             // 0x1800
-    'generic_attribute',          // 0x1801
+    /*
+     * Using numeric 16-bit hex UUIDs instead of string aliases —
+     * Chrome's string-name dictionary is incomplete and varies by
+     * version, but 0xXXXX short UUIDs are always accepted.
+     * Source: https://www.bluetooth.com/specifications/assigned-numbers/
+     */
 
-    // ── Standard profiles ────────────────────────────────────
-    'alert_notification',         // 0x1811
-    'automation_io',              // 0x1815
-    'battery_service',            // 0x180F
-    'blood_pressure',             // 0x1810
-    'body_composition',           // 0x181B
-    'bond_management',            // 0x181E
-    'continuous_glucose_monitoring', // 0x181F
-    'current_time',               // 0x1805
-    'cycling_power',              // 0x1818
-    'cycling_speed_and_cadence',  // 0x1816
-    'device_information',         // 0x180A
-    'environmental_sensing',      // 0x181A
-    'fitness_machine',            // 0x1826
-    'glucose',                    // 0x1808
-    'health_thermometer',         // 0x1809
-    'heart_rate',                 // 0x180D
-    'human_interface_device',     // 0x1812
-    'immediate_alert',            // 0x1802
-    'indoor_positioning',         // 0x1821
-    'insulin_delivery',           // 0x183A
-    'internet_protocol_support',  // 0x1820
-    'link_loss',                  // 0x1803
-    'location_and_navigation',    // 0x1819
-    'mesh_provisioning',          // 0x1827
-    'mesh_proxy',                 // 0x1828
-    'next_dst_change',            // 0x1807
-    'object_transfer',            // 0x1825
-    'phone_alert_status',         // 0x180E
-    'pulse_oximeter',             // 0x1822
-    'reconnection_configuration', // 0x1829
-    'reference_time_update',      // 0x1806
-    'running_speed_and_cadence',  // 0x1814
-    'scan_parameters',            // 0x1813
-    'transport_discovery',        // 0x1824
-    'tx_power',                   // 0x1804
-    'user_data',                  // 0x181C
-    'weight_scale',               // 0x181D
+    // ── Generic ───────────────────────────────────────────────
+    0x1800, // Generic Access
+    0x1801, // Generic Attribute
 
-    // ── Nordic / nRF Connect custom UUIDs ────────────────────
-    // Nordic UART Service (NUS) — commonly used in nRF Connect labs
+    // ── Standard GATT profiles ────────────────────────────────
+    0x1802, // Immediate Alert
+    0x1803, // Link Loss
+    0x1804, // Tx Power
+    0x1805, // Current Time
+    0x1806, // Reference Time Update
+    0x1807, // Next DST Change
+    0x1808, // Glucose
+    0x1809, // Health Thermometer
+    0x180A, // Device Information
+    0x180D, // Heart Rate
+    0x180E, // Phone Alert Status
+    0x180F, // Battery Service
+    0x1810, // Blood Pressure
+    0x1811, // Alert Notification
+    0x1812, // Human Interface Device
+    0x1813, // Scan Parameters
+    0x1814, // Running Speed and Cadence
+    0x1815, // Automation IO
+    0x1816, // Cycling Speed and Cadence
+    0x1818, // Cycling Power
+    0x1819, // Location and Navigation
+    0x181A, // Environmental Sensing
+    0x181B, // Body Composition
+    0x181C, // User Data
+    0x181D, // Weight Scale
+    0x181E, // Bond Management
+    0x181F, // Continuous Glucose Monitoring
+    0x1820, // Internet Protocol Support
+    0x1821, // Indoor Positioning
+    0x1822, // Pulse Oximeter
+    0x1823, // HTTP Proxy
+    0x1824, // Transport Discovery
+    0x1825, // Object Transfer
+    0x1826, // Fitness Machine
+    0x1827, // Mesh Provisioning
+    0x1828, // Mesh Proxy
+    0x1829, // Reconnection Configuration
+    0x183A, // Insulin Delivery
+    0x183B, // Binary Sensor
+    0x183C, // Emergency Configuration
+    0x183E, // Physical Activity Monitor
+    0x1843, // Audio Stream Control
+    0x1844, // Broadcast Audio Scan
+    0x1845, // Published Audio Capabilities
+    0x1846, // Basic Audio Announcement
+    0x1847, // Broadcast Audio Announcement
+
+    // ── Nordic UART Service (NUS) — used in nRF Connect labs ──
     '6e400001-b5a3-f393-e0a9-e50e24dcca9e', // NUS Service
-    '6e400002-b5a3-f393-e0a9-e50e24dcca9e', // NUS RX Characteristic
-    '6e400003-b5a3-f393-e0a9-e50e24dcca9e', // NUS TX Characteristic
+    '6e400002-b5a3-f393-e0a9-e50e24dcca9e', // NUS RX
+    '6e400003-b5a3-f393-e0a9-e50e24dcca9e', // NUS TX
 ];
 
 btnScan.addEventListener('click', async () => {
@@ -242,15 +279,21 @@ btnScan.addEventListener('click', async () => {
     try {
         /*
          * requestDevice() MUST be triggered by a user gesture (button click).
-         * It cannot be called programmatically for security reasons.
          *
-         * optionalServices lists every service UUID we may want to access.
-         * Chrome enforces this at scan time as a security measure.
+         * Simulation mode: use MockBluetooth from peripheral.js — instantly
+         * "selects" the virtual device without showing the browser picker.
+         *
+         * Real mode: use navigator.bluetooth with optionalServices declared
+         * so Chrome grants access to GATT services after connection.
          */
-        state.device = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: STANDARD_SERVICES,
-        });
+        if (state.simMode) {
+            state.device = await getMockBluetooth().requestDevice();
+        } else {
+            state.device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: STANDARD_SERVICES,
+            });
+        }
 
         log(`✅ Device selected: <strong>${state.device.name || 'Unnamed device'}</strong>`, 'success');
         log(`   Device ID: ${state.device.id}`, 'info');

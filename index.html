@@ -38,6 +38,33 @@
         <!-- ── LEFT COLUMN: Controls ─────────────────────── -->
         <aside class="panel panel--controls">
 
+            <!-- ── Simulation Mode Toggle ─────────────────────── -->
+            <div class="sim-panel" id="sim-panel">
+                <div class="sim-panel__left">
+                    <span class="sim-icon">🧪</span>
+                    <div>
+                        <p class="sim-title">Simulation Mode</p>
+                        <p class="sim-desc">No BLE device? Use the built-in virtual peripheral.</p>
+                    </div>
+                </div>
+                <label class="toggle" title="Enable simulation mode">
+                    <input type="checkbox" id="sim-toggle" />
+                    <span class="toggle__track"></span>
+                </label>
+            </div>
+
+            <!-- Sim device info card (shown when sim mode is ON) -->
+            <div id="sim-info" class="sim-info hidden">
+                <p class="sim-info__title">📡 Virtual BLE Device</p>
+                <ul class="sim-info__list">
+                    <li><span class="sim-svc">0x180F</span> Battery Service — battery_level <em>READ NOTIFY</em></li>
+                    <li><span class="sim-svc">0x181A</span> Environmental Sensing — temperature <em>READ NOTIFY</em>
+                    </li>
+                    <li><span class="sim-svc">0xFFFF</span> Lab Custom Service — lab_rw <em>READ WRITE</em> ·
+                        lab_counter <em>READ NOTIFY</em></li>
+                </ul>
+            </div>
+
             <!-- Step 1: Scan -->
             <section class="step-card" id="step-scan">
                 <div class="step-header">
@@ -230,6 +257,7 @@
         </p>
     </footer>
 
+    <script src="peripheral.js"></script>
     <script src="app.js"></script>
 </body>
 
