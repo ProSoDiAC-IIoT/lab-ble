@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bluetooth Low Energy Lab Explorer</title>
+    <meta name="description"
+        content="An interactive educational tool for exploring Bluetooth Low Energy (BLE) using the Web Bluetooth API." />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- =====================================================
+       HEADER
+  ===================================================== -->
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">&#x1F4E1;</span>
+                <div>
+                    <h1>Bluetooth Low Energy Lab Explorer</h1>
+                    <p class="subtitle">University Laboratory &mdash; Web Bluetooth API</p>
+                </div>
+            </div>
+            <a href="guide.html" class="btn btn--secondary" style="font-size:0.8rem;text-decoration:none;">&#128214;
+                Step-by-Step Guide</a>
+            <div id="connection-badge" class="badge badge--disconnected">Disconnected</div>
+        </div>
+    </header>
+
+    <!-- =====================================================
+       MAIN LAYOUT
+  ===================================================== -->
+    <main class="layout">
+
+        <!-- ── LEFT COLUMN: Controls ─────────────────────── -->
+        <aside class="panel panel--controls">
+
+            <!-- Step 1: Scan -->
+            <section class="step-card" id="step-scan">
+                <div class="step-header">
+                    <span class="step-number">1</span>
+                    <div>
+                        <h2>Device</h2>
+                        <p class="step-hint">
+                            BLE devices advertise themselves wirelessly. The browser shows a
+                            list of nearby devices so the user can pick one.
+                        </p>
+                    </div>
+                </div>
+                <button id="btn-scan" class="btn btn--primary">
+                    <span class="btn-icon">&#128269;</span> Scan for BLE Devices
+                </button>
+
+                <!-- Selected device info box -->
+                <div id="device-info" class="info-box hidden">
+                    <p class="info-label">Selected Device</p>
+                    <p id="device-name" class="info-value">—</p>
+                    <p id="device-id" class="info-id">—</p>
+                </div>
+            </section>
+
+            <!-- Step 2: Connect -->
+            <section class="step-card" id="step-connect">
+                <div class="step-header">
+                    <span class="step-number">2</span>
+                    <div>
+                        <h2>GATT Server</h2>
+                        <p class="step-hint">
+                            GATT (Generic Attribute Profile) is the protocol BLE uses to
+                            exchange data. Connecting opens a channel to the remote GATT
+                            server running on the device.
+                        </p>
+                    </div>
+                </div>
+                <button id="btn-connect" class="btn btn--primary" disabled>
+                    <span class="btn-icon">&#128279;</span> Connect to Device
+                </button>
+            </section>
+
+            <!-- Step 3: Services -->
+            <section class="step-card" id="step-services">
+                <div class="step-header">
+                    <span class="step-number">3</span>
+                    <div>
+                        <h2>Services</h2>
+                        <p class="step-hint">
+                            A GATT <strong>Service</strong> is a collection of related data
+                            points (e.g., "Heart Rate Service", "Battery Service"). Each
+                            service has a unique UUID.
+                        </p>
+                    </div>
+                </div>
+                <button id="btn-services" class="btn btn--primary" disabled>
+                    <span class="btn-icon">&#128226;</span> Discover Services
+                </button>
+
+                <!-- Services list -->
+                <div id="services-container" class="list-container hidden">
+                    <p class="list-label">Primary Services</p>
+                    <ul id="services-list" class="item-list"></ul>
+                </div>
+            </section>
+
+            <!-- Step 4: Characteristics -->
+            <section class="step-card" id="step-chars">
+                <div class="step-header">
+                    <span class="step-number">4</span>
+                    <div>
+                        <h2>Characteristics</h2>
+                        <p class="step-hint">
+                            A <strong>Characteristic</strong> is a single data value within
+                            a service. Each characteristic has a UUID and a set of
+                            <em>properties</em>: READ, WRITE, and/or NOTIFY.
+                        </p>
+                    </div>
+                </div>
+                <button id="btn-chars" class="btn btn--primary" disabled>
+                    <span class="btn-icon">&#128195;</span> Discover Characteristics
+                </button>
+
+                <!-- Characteristics list -->
+                <div id="chars-container" class="list-container hidden">
+                    <p class="list-label">Characteristics</p>
+                    <ul id="chars-list" class="item-list"></ul>
+                </div>
+            </section>
+
+            <!-- Step 5: Operations -->
+            <section class="step-card" id="step-ops">
+                <div class="step-header">
+                    <span class="step-number">5</span>
+                    <div>
+                        <h2>Read / Write / Notify</h2>
+                        <p class="step-hint">
+                            Operations you can perform on the selected characteristic,
+                            depending on its advertised properties.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Property badges -->
+                <div id="property-badges" class="badges-row hidden">
+                    <span id="badge-read" class="prop-badge prop-badge--read"
+                        title="This characteristic supports READ">READ</span>
+                    <span id="badge-write" class="prop-badge prop-badge--write"
+                        title="This characteristic supports WRITE">WRITE</span>
+                    <span id="badge-notify" class="prop-badge prop-badge--notify"
+                        title="This characteristic supports NOTIFY">NOTIFY</span>
+                </div>
+
+                <!-- READ -->
+                <div class="op-group">
+                    <p class="op-label">
+                        <span class="op-tag op-tag--read">READ</span>
+                        Fetch the current value of the characteristic.
+                    </p>
+                    <button id="btn-read" class="btn btn--read" disabled>
+                        <span class="btn-icon">&#128214;</span> Read Characteristic
+                    </button>
+                </div>
+
+                <!-- WRITE -->
+                <div class="op-group">
+                    <p class="op-label">
+                        <span class="op-tag op-tag--write">WRITE</span>
+                        Send a value to the device. Type a string or hex bytes below.
+                    </p>
+                    <div class="write-row">
+                        <input id="write-input" type="text" placeholder="e.g.  hello  or  0x01 0xFF"
+                            class="write-field" />
+                        <button id="btn-write" class="btn btn--write" disabled>
+                            <span class="btn-icon">&#9998;</span> Write
+                        </button>
+                    </div>
+                    <p class="write-hint">
+                        Prefix values with <code>0x</code> for hex bytes, otherwise the
+                        text is sent as UTF-8.
+                    </p>
+                </div>
+
+                <!-- NOTIFY -->
+                <div class="op-group">
+                    <p class="op-label">
+                        <span class="op-tag op-tag--notify">NOTIFY</span>
+                        The device will push updates automatically — no polling needed.
+                    </p>
+                    <div class="notify-row">
+                        <button id="btn-subscribe" class="btn btn--notify" disabled>
+                            <span class="btn-icon">&#128276;</span> Subscribe to Notifications
+                        </button>
+                        <button id="btn-unsubscribe" class="btn btn--secondary" disabled>
+                            Unsubscribe
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </aside>
+
+        <!-- ── RIGHT COLUMN: Log ──────────────────────────── -->
+        <section class="panel panel--log">
+            <div class="log-header">
+                <h2>&#128203; Live Log Console</h2>
+                <button id="btn-clear-log" class="btn btn--ghost">Clear</button>
+            </div>
+            <div id="log-output" class="log-output" aria-live="polite" aria-label="BLE operation log">
+                <!-- Log entries injected by app.js -->
+                <div class="log-entry log-entry--info">
+                    <span class="log-ts">Ready</span>
+                    <span class="log-msg">&#127891; Welcome to BLE Lab Explorer. Click <strong>Scan</strong> to
+                        begin.</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- =====================================================
+       FOOTER
+  ===================================================== -->
+    <footer class="site-footer">
+        <p>
+            BLE Lab Explorer &mdash; Built with the
+            <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API" target="_blank"
+                rel="noopener">Web Bluetooth API</a>.
+            Works in Chrome &amp; Edge on desktop/Android.
+        </p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lab Guide — BLE Lab Explorer</title>
+    <meta name="description"
+        content="Step-by-step guide to exploring Bluetooth Low Energy with the BLE Lab Explorer web app." />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="guide.css" />
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">&#x1F4E1;</span>
+                <div>
+                    <h1>BLE Lab Explorer — Step-by-Step Guide</h1>
+                    <p class="subtitle">University Laboratory &mdash; Web Bluetooth API</p>
+                </div>
+            </div>
+            <a href="index.html" class="btn btn--secondary nav-btn">&#8592; Back to App</a>
+        </div>
+    </header>
+
+    <main class="guide-layout">
+
+        <!-- ── Table of Contents ──────────────────────────── -->
+        <nav class="toc-panel" aria-label="Table of contents">
+            <p class="toc-title">Contents</p>
+            <ol class="toc-list">
+                <li><a href="#intro">Introduction to BLE</a></li>
+                <li><a href="#step1">Step 1 — Scan for Devices</a></li>
+                <li><a href="#step2">Step 2 — Connect to GATT Server</a></li>
+                <li><a href="#step3">Step 3 — Discover Services</a></li>
+                <li><a href="#step4">Step 4 — Discover Characteristics</a></li>
+                <li><a href="#step5a">Step 5a — Read a Value</a></li>
+                <li><a href="#step5b">Step 5b — Write a Value</a></li>
+                <li><a href="#step5c">Step 5c — Subscribe to Notifications</a></li>
+                <li><a href="#concepts">Key Concepts Summary</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+            </ol>
+            <a href="index.html" class="btn btn--primary toc-cta">&#128269; Open the App</a>
+        </nav>
+
+        <!-- ── Content ────────────────────────────────────── -->
+        <article class="guide-content">
+
+            <!-- INTRO -->
+            <section class="guide-section" id="intro">
+                <div class="section-badge">Overview</div>
+                <h2>Introduction to Bluetooth Low Energy (BLE)</h2>
+                <p>
+                    <strong>Bluetooth Low Energy (BLE)</strong> is a wireless communication standard
+                    designed for short-range data exchange with very low power consumption.
+                    It is used in devices like fitness trackers, heart rate monitors, smart home sensors,
+                    medical devices, and more.
+                </p>
+                <p>
+                    Unlike classic Bluetooth, BLE does not maintain a continuous connection.
+                    Devices advertise themselves periodically, and a <em>central</em> device
+                    (such as your laptop or phone) can scan, connect, and interact with them on demand.
+                </p>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <span class="concept-icon">&#128225;</span>
+                        <h3>Central</h3>
+                        <p>The device that initiates the connection. In this lab, your browser is the central.</p>
+                    </div>
+                    <div class="concept-card">
+                        <span class="concept-icon">&#128268;</span>
+                        <h3>Peripheral</h3>
+                        <p>The BLE device being connected to (sensor, gadget). It advertises itself and hosts a GATT
+                            server.</p>
+                    </div>
+                    <div class="concept-card">
+                        <span class="concept-icon">&#128200;</span>
+                        <h3>GATT</h3>
+                        <p>Generic Attribute Profile — the protocol that organises BLE data into Services and
+                            Characteristics.</p>
+                    </div>
+                    <div class="concept-card">
+                        <span class="concept-icon">&#128203;</span>
+                        <h3>UUID</h3>
+                        <p>Unique identifier for a Service or Characteristic. Standard ones are 16-bit (e.g. 0x180F);
+                            custom ones are 128-bit.</p>
+                    </div>
+                </div>
+
+                <div class="callout callout--info">
+                    <span class="callout-icon">&#9432;</span>
+                    <div>
+                        <strong>Browser requirement</strong><br />
+                        The Web Bluetooth API works only in <strong>Google Chrome</strong> and
+                        <strong>Microsoft Edge</strong> on desktop or Android.
+                        It does <em>not</em> work in Firefox or Safari.
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEP 1 -->
+            <section class="guide-section" id="step1">
+                <div class="step-pill">Step 1</div>
+                <h2>Scan for Nearby BLE Devices</h2>
+
+                <div class="step-goal">
+                    <strong>Goal:</strong> Find a nearby BLE peripheral and select it.
+                </div>
+
+                <ol class="instruction-list">
+                    <li>
+                        Make sure the BLE device you want to connect to is <strong>powered on</strong>
+                        and within range (≈10 m).
+                    </li>
+                    <li>
+                        Open the app at <a href="index.html">index.html</a> in Chrome or Edge.
+                    </li>
+                    <li>
+                        Click the <span class="ui-ref">&#128269; Scan for BLE Devices</span> button.
+                    </li>
+                    <li>
+                        A native browser dialog will appear listing nearby BLE devices.
+                        Select your device and click <strong>Pair</strong>.
+                    </li>
+                    <li>
+                        The selected device name and ID will appear in the
+                        <em>Selected Device</em> panel below the button.
+                    </li>
+                </ol>
+
+                <div class="code-explainer">
+                    <p class="code-explainer__label">What happens in the code</p>
+                    <pre><code>// The browser opens its built-in BLE device picker.
+// The user selects one device.
+const device = await navigator.bluetooth.requestDevice({
+  acceptAllDevices: true
+});</code></pre>
+                </div>
+
+                <div class="callout callout--warn">
+                    <span class="callout-icon">&#9888;</span>
+                    <div>
+                        <strong>Security note:</strong> <code>requestDevice()</code> can only be called
+                        in response to a user gesture (button click). The browser will not let a page
+                        scan for BLE devices automatically on load.
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEP 2 -->
+            <section class="guide-section" id="step2">
+                <div class="step-pill">Step 2</div>
+                <h2>Connect to the GATT Server</h2>
+
+                <div class="step-goal">
+                    <strong>Goal:</strong> Open a BLE connection and access the device's data structure.
+                </div>
+
+                <p>
+                    After selecting a device, you must explicitly <em>connect</em> to it.
+                    BLE distinguishes between a device being <em>known</em> and being
+                    <em>connected</em>. Connecting establishes the ACL (Asynchronous
+                    Connection-Less) data channel and opens the remote <strong>GATT server</strong>.
+                </p>
+
+                <ol class="instruction-list">
+                    <li>
+                        Click the <span class="ui-ref">&#128279; Connect to Device</span> button
+                        (enabled after selecting a device).
+                    </li>
+                    <li>
+                        Wait 1–3 seconds while the BLE handshake completes.
+                    </li>
+                    <li>
+                        The badge in the top-right corner will change from
+                        <span class="badge-demo badge-demo--off">DISCONNECTED</span> to
+                        <span class="badge-demo badge-demo--on">CONNECTED</span>.
+                    </li>
+                    <li>
+                        The log will print: <span class="log-demo log-demo--success">✅ Connected to GATT server!</span>
+                    </li>
+                </ol>
+
+                <div class="code-explainer">
+                    <p class="code-explainer__label">What happens in the code</p>
+                    <pre><code>// device.gatt is the BluetoothRemoteGATTServer object.
+// .connect() opens the physical BLE link.
+const server = await device.gatt.connect();</code></pre>
+                </div>
+            </section>
+
+            <!-- STEP 3 -->
+            <section class="guide-section" id="step3">
+                <div class="step-pill">Step 3</div>
+                <h2>Discover Primary Services</h2>
+
+                <div class="step-goal">
+                    <strong>Goal:</strong> List all top-level services offered by the device.
+                </div>
+
+                <p>
+                    A <strong>Service</strong> is a logical group of related data.
+                    Each device can expose multiple services. For example:
+                </p>
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>UUID</th>
+                            <th>Standard Service Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>0x180F</code></td>
+                            <td>Battery Service</td>
+                        </tr>
+                        <tr>
+                            <td><code>0x180D</code></td>
+                            <td>Heart Rate Service</td>
+                        </tr>
+                        <tr>
+                            <td><code>0x181A</code></td>
+                            <td>Environmental Sensing</td>
+                        </tr>
+                        <tr>
+                            <td><code>0x1800</code></td>
+                            <td>Generic Access</td>
+                        </tr>
+                        <tr>
+                            <td><code>128-bit UUID</code></td>
+                            <td>Vendor-specific / custom service</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <ol class="instruction-list">
+                    <li>Click <span class="ui-ref">&#128226; Discover Services</span>.</li>
+                    <li>The list of services will appear below the button, each showing its UUID.</li>
+                    <li><strong>Click on a service</strong> to select it (it will highlight in blue).</li>
+                    <li>The log will show all discovered UUIDs.</li>
+                </ol>
+
+                <div class="code-explainer">
+                    <p class="code-explainer__label">What happens in the code</p>
+                    <pre><code>// Returns an array of BluetoothRemoteGATTService objects.
+const services = await server.getPrimaryServices();</code></pre>
+                </div>
+            </section>
+
+            <!-- STEP 4 -->
+            <section class="guide-section" id="step4">
+                <div class="step-pill">Step 4</div>
+                <h2>Discover Characteristics</h2>
+
+                <div class="step-goal">
+                    <strong>Goal:</strong> List all data points inside the selected service.
+                </div>
+
+                <p>
+                    A <strong>Characteristic</strong> is a single data value inside a service.
+                    Think of a service as a folder and characteristics as files inside it.
+                    Each characteristic has:
+                </p>
+                <ul class="feature-list">
+                    <li><strong>UUID</strong> — its unique identifier</li>
+                    <li><strong>Value</strong> — the actual data (raw bytes)</li>
+                    <li><strong>Properties</strong> — what operations are allowed on it</li>
+                </ul>
+
+                <div class="props-explainer">
+                    <div class="prop-row">
+                        <span class="op-tag op-tag--read">READ</span>
+                        <p>You can ask the device for its current value at any time.</p>
+                    </div>
+                    <div class="prop-row">
+                        <span class="op-tag op-tag--write">WRITE</span>
+                        <p>You can push a new value to the device (to configure or control it).</p>
+                    </div>
+                    <div class="prop-row">
+                        <span class="op-tag op-tag--notify">NOTIFY</span>
+                        <p>The device will push updates to you automatically whenever the value changes.</p>
+                    </div>
+                </div>
+
+                <ol class="instruction-list">
+                    <li>After selecting a service, click <span class="ui-ref">&#128195; Discover Characteristics</span>.
+                    </li>
+                    <li>Each characteristic is listed with its UUID and property badges.</li>
+                    <li><strong>Click a characteristic</strong> to select it — the READ / WRITE / NOTIFY badges at the
+                        top of Step 5 will light up according to what it supports.</li>
+                </ol>
+
+                <div class="code-explainer">
+                    <p class="code-explainer__label">What happens in the code</p>
+                    <pre><code>// Returns all characteristics within the selected service.
+const characteristics = await selectedService.getCharacteristics();
+
+// Each characteristic exposes a .properties object:
+// { read: true, write: false, notify: true, ... }</code></pre>
+                </div>
+            </section>
+
+            <!-- STEP 5a -->
+            <section class="guide-section" id="step5a">
+                <div class="step-pill step-pill--read">Step 5a — READ</div>
+                <h2>Read a Characteristic Value</h2>
+
+                <div class="step-goal">
+                    <strong>Goal:</strong> Fetch the current value stored in the characteristic.
+                </div>
+
+                <p>
+                    A <strong>READ</strong> operation is a one-shot request: your browser asks the
+                    device and the device responds with its current value immediately.
+                    The value is returned as raw binary bytes (<em>DataView</em>).
+                </p>
+
+                <ol class="instruction-list">
+                    <li>Select a characteristic that has the <span class="op-tag op-tag--read">READ</span> property.
+                    </li>
+                    <li>Click <span class="ui-ref">&#128214; Read Characteristic</span>.</li>
+                    <li>
+                        The log will display the value both as:
+                        <ul>
+                            <li><strong>Hex</strong> — e.g. <code>0x48 0x65 0x6C 0x6C 0x6F</code></li>
+                            <li><strong>Text</strong> — e.g. <code>Hello</code> (if it's a UTF-8 string)</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <div class="code-explainer">
+                    <p class="code-explainer__label">What happens in the code</p>
+                    <pre><code>// Returns a DataView (raw binary buffer).
+const dataView = await characteristic.readValue();
+
+// Convert to hex string for display:
+const bytes = new Uint8Array(dataView.buffer);
+const hex = Array.from(bytes)
+  .map(b => '0x' + b.toString(16).padStart(2,'0').toUpperCase())
+  .join(' ');
+
+// Convert to text (UTF-8):
+const text = new TextDecoder('utf-8').decode(dataView);</code></pre>
+                </div>
+            </section>
+
+            <!-- STEP 5b -->
+            <section class="guide-section" id="step5b">
+                <div class="step-pill step-pill--write">Step 5b — WRITE</div>
+                <h2>Write a Value to a Characteristic</h2>
+
+                <div class="step-goal">
+                    <strong>Goal:</strong> Send data from the browser to the BLE device.
+                </div>
+
+                <p>
+                    A <strong>WRITE</strong> operation sends bytes from the central (browser) to
+                    the peripheral. This is how you control or configure a BLE device — for example,
+                    turning on an LED, changing a setting, or sending a command.
+                </p>
+
+                <div class="write-format-table">
+                    <div class="wf-row">
+                        <div class="wf-label">Text (UTF-8)</div>
+                        <div class="wf-example"><code>hello</code></div>
+                        <div class="wf-desc">Sent as UTF-8 encoded bytes.</div>
+                    </div>
+                    <div class="wf-row">
+                        <div class="wf-label">Hex bytes</div>
+                        <div class="wf-example"><code>0x01 0xFF 0x2A</code></div>
+                        <div class="wf-desc">Each token is one byte. Prefix with <code>0x</code>.</div>
+                    </div>
+                </div>
+
+                <ol class="instruction-list">
+                    <li>Select a characteristic with the <span class="op-tag op-tag--write">WRITE</span> property.</li>
+                    <li>Type a value in the input field (text or hex bytes).</li>
+                    <li>Click <span class="ui-ref">✎ Write</span>.</li>
+                    <li>The log will confirm whether the device acknowledged the write.</li>
+                </ol>
+
+                <div class="code-explainer">
+                    <p class="code-explainer__label">What happens in the code</p>
+                    <pre><code>// Convert a plain string to bytes:
+const buffer = new TextEncoder().encode('hello');
+
+// Send with acknowledgement (more reliable):
+await characteristic.writeValueWithResponse(buffer);
+
+// Or send without acknowledgement (faster, no guarantee):
+await characteristic.writeValueWithoutResponse(buffer);</code></pre>
+                </div>
+            </section>
+
+            <!-- STEP 5c -->
+            <section class="guide-section" id="step5c">
+                <div class="step-pill step-pill--notify">Step 5c — NOTIFY</div>
+                <h2>Subscribe to Notifications</h2>
+
+                <div class="step-goal">
+                    <strong>Goal:</strong> Receive live data updates pushed by the device automatically.
+                </div>
+
+                <p>
+                    Instead of repeatedly reading a value (polling), <strong>NOTIFY</strong> lets
+                    the device push updates to you whenever the value changes.
+                    This is ideal for continuous sensor data (temperature, heart rate, accelerometer…).
+                </p>
+
+                <div class="comparison-grid">
+                    <div class="comparison-card comparison-card--bad">
+                        <h3>&#10060; Polling (READ in a loop)</h3>
+                        <ul>
+                            <li>Central repeatedly asks for value</li>
+                            <li>High power consumption</li>
+                            <li>You may miss fast-changing values</li>
+                            <li>Wastes bandwidth</li>
+                        </ul>
+                    </div>
+                    <div class="comparison-card comparison-card--good">
+                        <h3>&#9989; NOTIFY (event-driven)</h3>
+                        <ul>
+                            <li>Device pushes value when it changes</li>
+                            <li>Very low power</li>
+                            <li>No missed updates</li>
+                            <li>Efficient and real-time</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <ol class="instruction-list">
+                    <li>Select a characteristic with the <span class="op-tag op-tag--notify">NOTIFY</span> property.
+                    </li>
+                    <li>Click <span class="ui-ref">&#128276; Subscribe to Notifications</span>.</li>
+                    <li>Every time the device sends a new value, it appears in the log in purple.</li>
+                    <li>Click <span class="ui-ref">Unsubscribe</span> when you want to stop receiving updates.</li>
+                </ol>
+
+                <div class="code-explainer">
+                    <p class="code-explainer__label">What happens in the code</p>
+                    <pre><code>// Tell the device to start sending notifications.
+await characteristic.startNotifications();
+
+// Listen for each incoming value:
+characteristic.addEventListener(
+  'characteristicvaluechanged',
+  (event) => {
+    const dataView = event.target.value; // new value as DataView
+    console.log(dataView);
+  }
+);
+
+// Stop notifications when done:
+await characteristic.stopNotifications();</code></pre>
+                </div>
+
+                <div class="callout callout--info">
+                    <span class="callout-icon">&#9432;</span>
+                    <div>
+                        Under the hood, subscribing writes a special value to the
+                        <strong>Client Characteristic Configuration Descriptor (CCCD)</strong>
+                        on the device, enabling the Notify bit. The device then knows to push updates.
+                    </div>
+                </div>
+            </section>
+
+            <!-- KEY CONCEPTS -->
+            <section class="guide-section" id="concepts">
+                <div class="section-badge">Reference</div>
+                <h2>Key Concepts Summary</h2>
+
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>Concept</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>BLE Device</strong></td>
+                            <td>A physical peripheral that broadcasts BLE advertisements and hosts a GATT server.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>GATT Server</strong></td>
+                            <td>The database of services and characteristics running on the peripheral.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Service</strong></td>
+                            <td>A logical group of related data, identified by a UUID.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Characteristic</strong></td>
+                            <td>A single data value within a service. Has a UUID, a value (bytes), and properties.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>READ</strong></td>
+                            <td>One-shot fetch of a characteristic's current value on demand.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>WRITE</strong></td>
+                            <td>Send bytes from the central to the peripheral to configure or control it.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>NOTIFY</strong></td>
+                            <td>Event-driven push from the peripheral whenever the value changes.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>UUID</strong></td>
+                            <td>Unique identifier. 16-bit for standard services (e.g. 0x180F), 128-bit for custom ones.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>DataView</strong></td>
+                            <td>JavaScript binary buffer type used to represent raw BLE characteristic values.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>CCCD</strong></td>
+                            <td>Client Characteristic Configuration Descriptor — enables NOTIFY on the device when
+                                written to.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- TROUBLESHOOTING -->
+            <section class="guide-section" id="troubleshooting">
+                <div class="section-badge">Help</div>
+                <h2>Troubleshooting</h2>
+
+                <div class="trouble-list">
+                    <details class="trouble-item">
+                        <summary>The Scan button doesn't open any picker</summary>
+                        <div class="trouble-body">
+                            <ul>
+                                <li>Make sure you are using <strong>Chrome</strong> or <strong>Edge</strong>.</li>
+                                <li>Make sure Bluetooth is enabled on your computer.</li>
+                                <li>On macOS, go to <em>System Settings → Privacy & Security → Bluetooth</em> and allow
+                                    Chrome/Edge.</li>
+                                <li>The page must be served over HTTPS or from <code>localhost</code> /
+                                    <code>file://</code>.</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="trouble-item">
+                        <summary>My device doesn't appear in the list</summary>
+                        <div class="trouble-body">
+                            <ul>
+                                <li>Ensure the device is powered on and in <em>advertising</em> mode (not already
+                                    connected to another device).</li>
+                                <li>Bring the device closer to your computer (stay within ~5 m).</li>
+                                <li>Some devices need a button press to start advertising.</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="trouble-item">
+                        <summary>Connection fails immediately</summary>
+                        <div class="trouble-body">
+                            <ul>
+                                <li>Try clicking <strong>Connect</strong> again — BLE connections can fail on the first
+                                    attempt.</li>
+                                <li>Make sure the device is not already connected to another phone or computer.</li>
+                                <li>Restart the BLE device and try again.</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="trouble-item">
+                        <summary>No services are found</summary>
+                        <div class="trouble-body">
+                            <ul>
+                                <li>Some devices require you to specify service UUIDs in <code>requestDevice()</code>
+                                    filters instead of using <code>acceptAllDevices: true</code>. Check your device's
+                                    datasheet.</li>
+                                <li>Try disconnecting and reconnecting before discovering services.</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="trouble-item">
+                        <summary>Read / Write buttons are greyed out</summary>
+                        <div class="trouble-body">
+                            <ul>
+                                <li>Make sure you have <strong>selected a characteristic</strong> by clicking on it in
+                                    the list.</li>
+                                <li>A greyed-out button means the selected characteristic does not support that
+                                    operation — choose a different characteristic.</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="trouble-item">
+                        <summary>No notifications are appearing</summary>
+                        <div class="trouble-body">
+                            <ul>
+                                <li>Confirm the characteristic has the <span class="op-tag op-tag--notify">NOTIFY</span>
+                                    badge active.</li>
+                                <li>Some devices only send notifications when a physical event occurs (e.g., a button
+                                    press or sensor change). Trigger the event on the device.</li>
+                                <li>Try unsubscribing and subscribing again.</li>
+                            </ul>
+                        </div>
+                    </details>
+                </div>
+            </section>
+
+            <!-- CTA -->
+            <div class="guide-cta">
+                <p>Ready to start?</p>
+                <a href="index.html" class="btn btn--primary">&#128269; Open BLE Lab Explorer</a>
+            </div>
+
+        </article>
+    </main>
+
+    <footer class="site-footer">
+        <p>
+            BLE Lab Explorer &mdash; Built with the
+            <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API" target="_blank"
+                rel="noopener">Web Bluetooth API</a>.
+            Works in Chrome &amp; Edge on desktop/Android.
+        </p>
+    </footer>
+
+</body>
+
+</html>
