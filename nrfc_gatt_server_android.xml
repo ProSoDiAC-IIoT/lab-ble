@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    BLE Lab Explorer — nRF Connect GATT Server Configuration
+    =========================================================
+    Import: nRF Connect → Menu → Configure GATT Server → Import
+-->
+<server>
+
+    <!-- Service 1 — Battery Service (0x180F) -->
+    <service uuid="0000180f-0000-1000-8000-00805f9b34fb"
+             name="Battery Service">
+
+        <!-- Battery Level (0x2A19) | READ, NOTIFY | 0x57 = 87% -->
+        <characteristic uuid="00002a19-0000-1000-8000-00805f9b34fb"
+                         name="Battery Level">
+            <properties read="true" notify="true" />
+            <value length="1" type="hex">57</value>
+
+            <descriptor uuid="00002902-0000-1000-8000-00805f9b34fb"
+                        name="Client Characteristic Configuration">
+                <properties read="true" write="true" />
+                <value length="2" type="hex">0000</value>
+            </descriptor>
+        </characteristic>
+
+    </service>
+
+    <!-- Service 2 — Environmental Sensing (0x181A) -->
+    <service uuid="0000181a-0000-1000-8000-00805f9b34fb"
+             name="Environmental Sensing">
+
+        <!--
+            Temperature (0x2A6E) | READ, NOTIFY
+            0x8608 = 2150 little-endian → 21.50 °C (unit = 0.01 °C)
+        -->
+        <characteristic uuid="00002a6e-0000-1000-8000-00805f9b34fb"
+                         name="Temperature">
+            <properties read="true" notify="true" />
+            <value length="2" type="hex">8608</value>
+
+            <descriptor uuid="00002902-0000-1000-8000-00805f9b34fb"
+                        name="Client Characteristic Configuration">
+                <properties read="true" write="true" />
+                <value length="2" type="hex">0000</value>
+            </descriptor>
+        </characteristic>
+
+    </service>
+
+    <!-- Service 3 — Lab Custom Service (0xFFFF) -->
+    <service uuid="0000ffff-0000-1000-8000-00805f9b34fb"
+             name="Lab Custom Service">
+
+        <!--
+            Lab RW (0xFF01) | READ, WRITE, WRITE WITHOUT RESPONSE
+            "hello" = 68 65 6C 6C 6F in UTF-8 hex
+        -->
+        <characteristic uuid="0000ff01-0000-1000-8000-00805f9b34fb"
+                         name="Lab RW">
+            <properties read="true"
+                         write="true"
+                         writeWithoutResponse="true" />
+            <value length="5" type="hex">68656c6c6f</value>
+        </characteristic>
+
+        <!-- Lab Counter (0xFF02) | READ, NOTIFY | starts at 0x00 -->
+        <characteristic uuid="0000ff02-0000-1000-8000-00805f9b34fb"
+                         name="Lab Counter">
+            <properties read="true" notify="true" />
+            <value length="1" type="hex">00</value>
+
+            <descriptor uuid="00002902-0000-1000-8000-00805f9b34fb"
+                        name="Client Characteristic Configuration">
+                <properties read="true" write="true" />
+                <value length="2" type="hex">0000</value>
+            </descriptor>
+        </characteristic>
+
+    </service>
+
+</server>
